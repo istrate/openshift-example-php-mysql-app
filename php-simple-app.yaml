@@ -1,0 +1,280 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+labels:
+  template: php-app
+metadata:
+  annotations:
+    description: A simple PHP application with MySQL database
+    iconClass: icon-php
+    tags: php,mysql
+  creationTimestamp: "2021-10-10T08:19:24Z"
+  managedFields:
+  - apiVersion: template.openshift.io/v1
+    fieldsType: FieldsV1
+    fieldsV1:
+      f:labels:
+        .: {}
+        f:template: {}
+      f:metadata:
+        f:annotations:
+          .: {}
+          f:description: {}
+          f:iconClass: {}
+          f:tags: {}
+      f:objects: {}
+      f:parameters: {}
+    manager: kubectl-create
+    operation: Update
+    time: "2021-10-10T08:19:24Z"
+  name: php-app
+  namespace: blog
+  resourceVersion: "48347358"
+  selfLink: /apis/template.openshift.io/v1/namespaces/blog/templates/php-app
+  uid: 0a25aa66-9480-4f75-8ae3-0dc64603f29e
+objects:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      description: Exposes and load balances the application pods
+    name: ${NAME}
+  spec:
+    ports:
+    - name: web
+      port: 8080
+      targetPort: 8080
+    selector:
+      name: ${NAME}
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: ${NAME}
+  spec:
+    host: ${APPLICATION_DOMAIN}
+    to:
+      kind: Service
+      name: ${NAME}
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    annotations:
+      description: Keeps track of changes in the application image
+    name: ${NAME}
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    annotations:
+      description: Defines how to build the application
+    name: ${NAME}
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: ${NAME}:latest
+    source:
+      git:
+        ref: ${SOURCE_REPOSITORY_REF}
+        uri: ${SOURCE_REPOSITORY_URL}
+      sourceSecret:
+        name: ${GIT_SECRET}
+      type: Git
+    strategy:
+      sourceStrategy:
+        env:
+        - name: COMPOSER_MIRROR
+          value: ${COMPOSER_MIRROR}
+        from:
+          kind: ImageStreamTag
+          name: php:latest
+          namespace: ${NAMESPACE}
+      type: Source
+    triggers:
+    - type: ImageChange
+    - type: ConfigChange
+    - github:
+        secret: ${GITHUB_WEBHOOK_SECRET}
+      type: GitHub
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    annotations:
+      description: Defines how to deploy the application server
+    name: ${NAME}
+  spec:
+    replicas: 1
+    selector:
+      name: ${NAME}
+    strategy:
+      type: Recreate
+    template:
+      metadata:
+        labels:
+          name: ${NAME}
+        name: ${NAME}
+      spec:
+        containers:
+        - env:
+          - name: DATABASE_SERVICE_NAME
+            value: ${DATABASE_SERVICE_NAME}
+          - name: DATABASE_NAME
+            value: ${DATABASE_NAME}
+          - name: DATABASE_USER
+            value: ${DATABASE_USER}
+          - name: DATABASE_PASSWORD
+            value: ${DATABASE_PASSWORD}
+          - name: HELLO_MESSAGE
+            value: ${HELLO_MESSAGE}
+          image: ' '
+          name: php-app
+          ports:
+          - containerPort: 8080
+          resources:
+            limits:
+              memory: ${MEMORY_LIMIT}
+    triggers:
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - php-app
+        from:
+          kind: ImageStreamTag
+          name: ' '
+      type: ImageChange
+    - type: ConfigChange
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      description: Exposes the database server
+    name: ${DATABASE_SERVICE_NAME}
+  spec:
+    ports:
+    - name: mysql
+      port: 3306
+      targetPort: 3306
+    selector:
+      name: ${DATABASE_SERVICE_NAME}
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    annotations:
+      description: Defines how to deploy the database
+    name: ${DATABASE_SERVICE_NAME}
+  spec:
+    replicas: 1
+    selector:
+      name: ${DATABASE_SERVICE_NAME}
+    strategy:
+      type: Recreate
+    template:
+      metadata:
+        labels:
+          name: ${DATABASE_SERVICE_NAME}
+        name: ${DATABASE_SERVICE_NAME}
+      spec:
+        containers:
+        - env:
+          - name: MYSQL_USER
+            value: ${DATABASE_USER}
+          - name: MYSQL_PASSWORD
+            value: ${DATABASE_PASSWORD}
+          - name: MYSQL_DATABASE
+            value: ${DATABASE_NAME}
+          image: ' '
+          livenessProbe:
+            initialDelaySeconds: 30
+            tcpSocket:
+              port: 3306
+            timeoutSeconds: 1
+          name: mysql
+          ports:
+          - containerPort: 3306
+          readinessProbe:
+            exec:
+              command:
+              - /bin/sh
+              - -i
+              - -c
+              - MYSQL_PWD='${DATABASE_PASSWORD}' mysql -h 127.0.0.1 -u ${DATABASE_USER} -D ${DATABASE_NAME} -e 'SELECT 1'
+            initialDelaySeconds: 5
+            timeoutSeconds: 1
+          resources:
+            limits:
+              memory: ${MEMORY_MYSQL_LIMIT}
+    triggers:
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - mysql
+        from:
+          kind: ImageStreamTag
+          name: ""
+          namespace: ${NAMESPACE}
+      type: ImageChange
+    - type: ConfigChange
+parameters:
+- description: The name assigned to all of the frontend objects defined in this template.
+  displayName: Name
+  from: php-app-[a-z0-9]{5}
+  generate: expression
+  name: NAME
+  required: true
+- description: The OpenShift Namespace where the ImageStream resides.
+  displayName: Namespace
+  name: NAMESPACE
+  required: true
+  value: openshift
+- description: Maximum amount of memory the PHP container can use.
+  displayName: Memory Limit
+  name: MEMORY_LIMIT
+  required: true
+  value: 512Mi
+- description: Maximum amount of memory the MySQL container can use.
+  displayName: Memory Limit (MySQL)
+  name: MEMORY_MYSQL_LIMIT
+  required: true
+  value: 512Mi
+- description: The URL of the repository with your application source code.
+  displayName: Git Repository URL
+  name: SOURCE_REPOSITORY_URL
+  required: true
+  value: https://github.com/openshift/openshift-example-php-mysql-app.git
+- description: Set this to a branch name, tag or other ref of your repository if you are not using the default branch.
+  displayName: Git Reference
+  name: SOURCE_REPOSITORY_REF
+- description: OpenShift Git Secret Name
+  displayName: Git Secret
+  name: GIT_SECRET
+  value: gitlab
+- description: The exposed hostname that will route to PHP app service, if left blank a value will be defaulted.
+  displayName: Application Hostname
+  name: APPLICATION_DOMAIN
+  value: php-app.someaddress.some-domain
+- description: A secret string used to configure the GitHub webhook.
+  displayName: GitHub Webhook Secret
+  from: '[a-zA-Z0-9]{40}'
+  generate: expression
+  name: GITHUB_WEBHOOK_SECRET
+- displayName: Database Service Name
+  name: DATABASE_SERVICE_NAME
+  required: true
+  value: mysql
+- displayName: Database Name
+  name: DATABASE_NAME
+  required: true
+  value: default
+- displayName: Database User
+  name: DATABASE_USER
+  required: true
+  value: phpapp
+- displayName: Database Password
+  from: '[a-zA-Z0-9]{16}'
+  generate: expression
+  name: DATABASE_PASSWORD
+- description: Hello Message.
+  displayName: Hello Message
+  name: HELLO_MESSAGE
+  value: Ahoy!
+- description: The custom Composer mirror URL
+  displayName: Custom Composer Mirror URL
+  name: COMPOSER_MIRROR
