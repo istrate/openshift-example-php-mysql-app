@@ -85,7 +85,7 @@
             "from": {
               "kind": "ImageStreamTag",
               "namespace": "${NAMESPACE}",
-              "name": "php:5.6"
+              "name": "php:latest"
             },
             "env":  [
               {
@@ -140,7 +140,7 @@
               ],
               "from": {
                 "kind": "ImageStreamTag",
-                "name": "${NAME}:latest"
+                "name": " "
               }
             }
           },
@@ -248,7 +248,7 @@
               "from": {
                 "kind": "ImageStreamTag",
                 "namespace": "${NAMESPACE}",
-                "name": "mysql:5.6"
+                "name": ""
               }
             }
           },
@@ -352,7 +352,7 @@
       "displayName": "Git Repository URL",
       "description": "The URL of the repository with your application source code.",
       "required": true,
-      "value": "git@git.elostech.cz:OpenShift/php-app.git"
+      "value": "https://github.com/openshift/openshift-example-php-mysql-app.git"
     },
     {
       "name": "SOURCE_REPOSITORY_REF",
@@ -369,7 +369,7 @@
       "name": "APPLICATION_DOMAIN",
       "displayName": "Application Hostname",
       "description": "The exposed hostname that will route to PHP app service, if left blank a value will be defaulted.",
-      "value": "php-app.oseapps.elostech.cz"
+      "value": "php-app.someaddress.some-domain"
     },
     {
       "name": "GITHUB_WEBHOOK_SECRET",
@@ -406,7 +406,7 @@
       "name": "HELLO_MESSAGE",
       "displayName": "Hello Message",
       "description": "Hello Message.",
-      "value": "Ahoj!"
+      "value": "Ahoy!"
     },
     {
       "name": "COMPOSER_MIRROR",
