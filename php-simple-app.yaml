@@ -226,7 +226,7 @@ parameters:
   - name: GIT_SECRET
     displayName: Git Secret
     description: OpenShift Git Secret Name
-    value: gitlab
+    value: github
   - name: APPLICATION_DOMAIN
     displayName: Application Hostname
     description: >-
