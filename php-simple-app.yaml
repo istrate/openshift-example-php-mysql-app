@@ -49,8 +49,6 @@ objects:
         git:
           uri: '${SOURCE_REPOSITORY_URL}'
           ref: '${SOURCE_REPOSITORY_REF}'
-        sourceSecret:
-          name: '${GIT_SECRET}'
       strategy:
         type: Source
         sourceStrategy:
@@ -223,10 +221,6 @@ parameters:
     description: >-
       Set this to a branch name, tag or other ref of your repository if you are
       not using the default branch.
-  - name: GIT_SECRET
-    displayName: Git Secret
-    description: OpenShift Git Secret Name
-    value: github
   - name: APPLICATION_DOMAIN
     displayName: Application Hostname
     description: >-
