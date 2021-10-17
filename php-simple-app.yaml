@@ -55,10 +55,7 @@ objects:
           from:
             kind: ImageStreamTag
             namespace: '${NAMESPACE}'
-            name: 'php:latest'
-          env:
-            - name: COMPOSER_MIRROR
-              value: '${COMPOSER_MIRROR}'
+            name: 'php:latest'          
       output:
         to:
           kind: ImageStreamTag
@@ -252,7 +249,3 @@ parameters:
     displayName: Hello Message
     description: Hello Message.
     value: Ahoy!
-  - name: COMPOSER_MIRROR
-    displayName: Custom Composer Mirror URL
-    description: The custom Composer mirror URL
-    value: ''
