@@ -1,0 +1,312 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: php-app
+  namespace: openshift
+  annotations:
+    openshift.io/display-name: PHP-MYSQL APP
+    description: A simple PHP application with MySQL database
+    iconClass: icon-php
+    tags: php,mysql
+objects:
+- apiVersion: image.openshift.io/v1
+  kind: ImageStream
+  metadata:
+    annotations:
+    labels:
+      app: '${NAME}'
+    name: '${NAME}'
+  spec:
+    lookupPolicy:
+      local: false
+- apiVersion: build.openshift.io/v1
+  kind: BuildConfig
+  metadata:
+    annotations:
+    labels:
+      app: '${NAME}'
+    name: '${NAME}'
+  spec:
+    failedBuildsHistoryLimit: 5
+    nodeSelector: null
+    output:
+      to:
+        kind: ImageStreamTag
+        name: '${NAME}':latest
+    postCommit: {}
+    resources: {}
+    runPolicy: Serial
+    source:      
+      git:
+        uri: ${APP_GIT_URL}
+      type: Git
+    strategy:
+      sourceStrategy:
+        from:
+          kind: ImageStreamTag
+          name: php:7.3
+          namespace: openshift
+      type: Source
+    successfulBuildsHistoryLimit: 5
+    triggers:
+    - github:
+        secret: ${SECRET}
+      type: GitHub
+    - generic:
+        secret: ${SECRET}
+      type: Generic
+    - type: ConfigChange
+    - imageChange:
+      type: ImageChange
+- apiVersion: apps.openshift.io/v1
+  kind: DeploymentConfig
+  metadata:
+    annotations:
+    labels:
+      app: '${NAME}'
+    name: '${NAME}'
+  spec:
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      app: '${NAME}'
+      deploymentconfig: '${NAME}'
+    strategy:
+      activeDeadlineSeconds: 21600
+      resources: {}
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+      type: Rolling
+    template:
+      metadata:
+        annotations:
+        labels:
+          app: '${NAME}'
+          deploymentconfig: '${NAME}'
+      spec:
+        containers:
+        - env:
+          - name: DATABASE_NAME
+            value: '${DATABASE_NAME}'
+          - name: DATABASE_PASSWORD
+            value: '${DATABASE_PASSWORD}'
+          - name: DATABASE_SERVICE_NAME
+            value: ${DATABASE_SERVICE_NAME}
+          - name: DATABASE_USER
+            value: '${DATABASE_USER}'
+          - name: HELLO_MESSAGE
+            value: '${HELLO_MESSAGE}'  
+          imagePullPolicy: Always
+          name: '${NAME}'
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          - containerPort: 8443
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+    test: false
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - '${NAME}'
+        from:
+          kind: ImageStreamTag
+          name: '${NAME}':latest
+      type: ImageChange
+- apiVersion: apps.openshift.io/v1
+  kind: DeploymentConfig
+  metadata:
+    annotations:
+    labels:
+      app: mysql
+    name: mysql
+  spec:
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      app: mysql
+      deploymentconfig: mysql
+    strategy:
+      activeDeadlineSeconds: 21600
+      resources: {}
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+      type: Rolling
+    template:
+      metadata:
+        annotations:
+        labels:
+          app: mysql
+          deploymentconfig: mysql
+      spec:
+        containers:
+        - env:
+          - name: MYSQL_DATABASE
+            value: '${DATABASE_NAME}'
+          - name: MYSQL_PASSWORD
+            value: '${DATABASE_PASSWORD}'
+          - name: MYSQL_USER
+            value: '${DATABASE_USER}'
+          imagePullPolicy: IfNotPresent
+          name: mysql
+          ports:
+          - containerPort: 3306
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /var/lib/mysql/data
+            name: mysql-volume-1
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - name: mysql-volume-1
+          persistentVolumeClaim:
+            claimName: mysql-claim
+    test: false
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - mysql
+        from:
+          kind: ImageStreamTag
+          name: mysql:8.0
+          namespace: openshift
+      type: ImageChange
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+    labels:
+      app: '${NAME}'
+    name: '${NAME}'
+  spec:
+    ports:
+    - name: 8080-tcp
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    - name: 8443-tcp
+      port: 8443
+      protocol: TCP
+      targetPort: 8443
+    selector:
+      app: '${NAME}'
+      deploymentconfig: '${NAME}'
+    sessionAffinity: None
+    type: ClusterIP
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+    labels:
+      app: mysql
+    name: mysql
+  spec:
+    ports:
+    - name: 3306-tcp
+      port: 3306
+      protocol: TCP
+      targetPort: 3306
+    selector:
+      app: mysql
+      deploymentconfig: mysql
+    sessionAffinity: None
+    type: ClusterIP
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    annotations:
+    labels:
+      app: '${NAME}'
+    name: '${NAME}'
+  spec:
+    host: '${APPLICATION_DOMAIN}'
+    port:
+      targetPort: 8080-tcp
+    to:
+      kind: Service
+      name: '${NAME}'
+      weight: 100
+    wildcardPolicy: None
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    annotations:
+    name: mysql-claim
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 300Mi
+parameters:
+- name: APP_GIT_URL
+  displayName: Application Source Git URL
+  description: The Git URL of the application source code
+  required: true
+  value: 'https://github.com/istrate/php-mysql-app'
+- name: DATABASE_PASSWORD
+  displayName: Database Password
+  description: Password to access the database
+  generate: expression
+  from: '[a-zA-Z0-9]{16}'
+- name: SECRET
+  displayName: Webhook Secret
+  description: Secret for webhooks
+  generate: expression
+  from: '[a-zA-Z0-9]{40}'
+- name: DATABASE_SERVICE_NAME
+  displayName: MYSQL Service name
+  description: MYSQL Service name
+  value: mysql
+- name: NAME
+  displayName: Name
+  description: The name assigned to all of the frontend objects defined in this template.
+  required: true
+  value: "php-name"
+- name: DATABASE_NAME
+  displayName: Database Name
+  required: true
+  value: default
+- name: DATABASE_USER
+  displayName: Database User
+  required: true
+  value: phpapp
+- name: DATABASE_PASSWORD
+  displayName: Database Password
+  generate: expression
+  from: '[a-zA-Z0-9]{16}'
+- name: HELLO_MESSAGE
+  displayName: Hello Message
+  description: Hello Message.
+  value: Ahoy!
+- name: APPLICATION_DOMAIN
+  displayName: Application Hostname
+  description: >-
+      The exposed hostname that will route to PHP app service, if left blank a
+      value will be defaulted.
+  value: 'php.apps.eu46.prod.nextcle.com'
