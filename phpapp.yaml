@@ -157,6 +157,8 @@ objects:
           deploymentconfig: mysql
       spec:
         containers:
+        - args:
+            - "--default-authentication-plugin=mysql_native_password"
         - env:
           - name: MYSQL_DATABASE
             value: '${DATABASE_NAME}'
