@@ -38,13 +38,13 @@ objects:
     runPolicy: Serial
     source:      
       git:
-        uri: ${APP_GIT_URL}
+        uri: ${SOURCE_REPOSITORY_URL}
       type: Git
     strategy:
       sourceStrategy:
         from:
           kind: ImageStreamTag
-          name: php:7.3
+          name: php:latest
           namespace: openshift
       type: Source
     successfulBuildsHistoryLimit: 5
@@ -124,7 +124,7 @@ objects:
         - '${NAME}'
         from:
           kind: ImageStreamTag
-          name: '${NAME}:latest'
+          name: ' '
       type: ImageChange
 - apiVersion: apps.openshift.io/v1
   kind: DeploymentConfig
@@ -166,7 +166,6 @@ objects:
             value: '${DATABASE_USER}'
           imagePullPolicy: IfNotPresent
           name: mysql
-          command: --default-authentication-plugin=mysql_native_password
           ports:
           - containerPort: 3306
             protocol: TCP
@@ -194,7 +193,7 @@ objects:
         - mysql
         from:
           kind: ImageStreamTag
-          name: mysql:8.0
+          name: mysql:latest
           namespace: openshift
       type: ImageChange
 - apiVersion: v1
@@ -265,11 +264,11 @@ objects:
       requests:
         storage: 300Mi
 parameters:
-- name: APP_GIT_URL
+- name: SOURCE_REPOSITORY_URL
   displayName: Application Source Git URL
   description: The Git URL of the application source code
   required: true
-  value: 'https://github.com/istrate/php-mysql-app'
+  value: 'https://github.com/openshift/php-mysql-app'
 - name: DATABASE_PASSWORD
   displayName: Database Password
   description: Password to access the database
@@ -310,4 +309,4 @@ parameters:
   description: >-
       The exposed hostname that will route to PHP app service, if left blank a
       value will be defaulted.
-  value: 'php.apps.eu46.prod.nextcle.com'
+  value: php-app.someaddress.some-domain
