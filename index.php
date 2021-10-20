@@ -96,7 +96,7 @@ count INT(6))";
   $result = mysqli_query($db, $sql);
   if (mysqli_num_rows($result) > 0) {
     while($row = mysqli_fetch_assoc($result)) {
-      echo "<h2>Pocitadlo: " . $row['count'] . "</h2>";
+      echo "<h2>Counter: " . $row['count'] . "</h2>";
     }
   }
  
