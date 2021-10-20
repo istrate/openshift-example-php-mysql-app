@@ -32,7 +32,7 @@ objects:
     output:
       to:
         kind: ImageStreamTag
-        name: '${NAME}':latest
+        name: '${NAME}:latest'
     postCommit: {}
     resources: {}
     runPolicy: Serial
@@ -124,7 +124,7 @@ objects:
         - '${NAME}'
         from:
           kind: ImageStreamTag
-          name: '${NAME}':latest
+          name: '${NAME}:latest'
       type: ImageChange
 - apiVersion: apps.openshift.io/v1
   kind: DeploymentConfig
