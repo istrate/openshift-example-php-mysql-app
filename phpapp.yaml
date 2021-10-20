@@ -166,8 +166,7 @@ objects:
             value: '${DATABASE_USER}'
           imagePullPolicy: IfNotPresent
           name: mysql
-          args:
-            - "--default-authentication-plugin=mysql_native_password"
+          command: --default-authentication-plugin=mysql_native_password
           ports:
           - containerPort: 3306
             protocol: TCP
