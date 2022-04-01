@@ -124,7 +124,7 @@ objects:
         - '${NAME}'
         from:
           kind: ImageStreamTag
-          name: ' '
+          name: '${NAME}:latest'
       type: ImageChange
 - apiVersion: apps.openshift.io/v1
   kind: DeploymentConfig
@@ -165,6 +165,8 @@ objects:
             value: '${DATABASE_NAME}'
           - name: MYSQL_PASSWORD
             value: '${DATABASE_PASSWORD}'
+          - name: MYSQL_ROOT_PASSWORD
+            value: '${DATABASE_PASSWORD}'  
           - name: MYSQL_USER
             value: '${DATABASE_USER}'
           imagePullPolicy: IfNotPresent
