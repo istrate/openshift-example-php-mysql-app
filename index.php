@@ -9,8 +9,8 @@
   $message2     = getenv('HELLO_AUDIENCE');
 ?>
 
-<h1><?php echo "$message" ?></h1>
-<h1><?php echo "$message2" ?></h1>
+<h1><?php echo "$message $message2" ?></h1>
+
 
 <table border="1">
 <tr>
